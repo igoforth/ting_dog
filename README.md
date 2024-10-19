@@ -1,6 +1,6 @@
 # Ting Dog
 
-Ting Dog is a Cloudflare Workers project that generates and serves AI-generated images of dogs performing various "-ting" actions (e.g., sitting, waiting, barking). The project uses subdomains to categorize different actions and provides a fun, interactive way to view unique dog images.
+Ting Dog is a Cloudflare Workers project that generates and serves AI-generated images of dogs performing various "-ting" actions (e.g., sitting, waiting, panting). The project uses subdomains to categorize different actions and provides a fun, interactive way to view unique dog images.
 
 ## Features
 
