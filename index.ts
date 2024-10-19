@@ -275,6 +275,32 @@ async function generateAndStoreFluxImage(model: BaseAiTextToImageModels, prompt:
     return key;
 }
 
+async function getImage(env: Env, randomPrefix: string) {
+    const action = `${randomPrefix}ting` as PrefixTing;
+    const prompt = createImagePrompt(
+        action,
+        dogBreeds[Math.floor(Math.random() * dogBreeds.length)],
+        environments[Math.floor(Math.random() * environments.length)],
+        timeOfDay[Math.floor(Math.random() * timeOfDay.length)]
+    );
+
+    const imageKey = await generateAndStoreFluxImage("@cf/black-forest-labs/flux-1-schnell", prompt, randomPrefix, env);
+    const htmlContent = await getImagePage(imageKey, env);
+
+    // Store the new image key for the prefix
+    const imageKeysJson = await env.PREFIX_TO_IMAGES_KV.get(randomPrefix);
+    const imageKeys = imageKeysJson ? JSON.parse(imageKeysJson) : [];
+    imageKeys.push(imageKey);
+    await env.PREFIX_TO_IMAGES_KV.put(randomPrefix, JSON.stringify(imageKeys));
+
+    return new Response(htmlContent, {
+        headers: addCorsHeaders(new Headers({
+            'Content-Type': 'text/html',
+            'Cache-Control': 'public, max-age=600', // Cache for 10 minutes
+        })),
+    });
+}
+
 async function topUpImages(env: Env) {
     let generatedCount = 0;
     const prefixArray = Array.from(subdomainPrefixes);
@@ -362,6 +388,11 @@ async function handleRequest(req: Request, env: Env, ctx: ExecutionContext): Pro
         return new Response("Internal server error", { status: 500 })
     }
 
+    // Redirect to root path if not already there
+    if (url.pathname !== "/") {
+        return Response.redirect(`${url.origin}/`, 301);
+    }
+
     // Check if it's a subdomain request or an IP address
     const hostParts = url.hostname.split('.');
     const isIPv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(url.hostname);
@@ -372,56 +403,30 @@ async function handleRequest(req: Request, env: Env, ctx: ExecutionContext): Pro
     }
 
     // Fallback for root domain or IP address
-    if (url.pathname === "/" || url.pathname === "") {
-        if (env.ENVIRONMENT !== 'dev') {
-            const randomSubdomain = await getRandomSubdomainWithImages(env);
-            if (randomSubdomain) {
-                const redirectUrl = isIPv4 || isIPv6
-                    ? `https://${randomSubdomain}.${env.ROOT_DOMAIN}${url.pathname}`
-                    : `https://${randomSubdomain}.${url.hostname}${url.pathname}`;
-                return Response.redirect(redirectUrl, 302);
-            }
-        }
-
-        // Generate a new image when no images are available
-        const randomPrefix = Array.from(subdomainPrefixes)[Math.floor(Math.random() * subdomainPrefixes.size)];
-        const action = `${randomPrefix}ting` as PrefixTing;
-        const prompt = createImagePrompt(
-            action,
-            dogBreeds[Math.floor(Math.random() * dogBreeds.length)],
-            environments[Math.floor(Math.random() * environments.length)],
-            timeOfDay[Math.floor(Math.random() * timeOfDay.length)]
-        );
-
-        try {
-            const imageKey = await generateAndStoreFluxImage("@cf/black-forest-labs/flux-1-schnell", prompt, randomPrefix, env);
-            const htmlContent = await getImagePage(imageKey, env);
-
-            // Store the new image key for the prefix
-            const imageKeysJson = await env.PREFIX_TO_IMAGES_KV.get(randomPrefix);
-            const imageKeys = imageKeysJson ? JSON.parse(imageKeysJson) : [];
-            imageKeys.push(imageKey);
-            await env.PREFIX_TO_IMAGES_KV.put(randomPrefix, JSON.stringify(imageKeys));
-
-            return new Response(htmlContent, {
-                headers: addCorsHeaders(new Headers({
-                    'Content-Type': 'text/html',
-                    'Cache-Control': 'public, max-age=600', // Cache for 10 minutes
-                })),
-            });
-        } catch (error) {
-            console.error(`Failed to generate image: ${error}`);
-
-            // If an image was generated but failed to be served, invalidate it
-            if (typeof error === 'object' && error !== null && 'imageKey' in error) {
-                await invalidateImageKey(randomPrefix, (error as { imageKey: string }).imageKey, env);
-            }
-
-            return new Response("Failed to generate image", { status: 500 });
+    if (env.ENVIRONMENT !== 'dev') {
+        const randomSubdomain = await getRandomSubdomainWithImages(env);
+        if (randomSubdomain) {
+            const redirectUrl = isIPv4 || isIPv6
+                ? `https://${randomSubdomain}.${env.ROOT_DOMAIN}${url.pathname}`
+                : `https://${randomSubdomain}.${url.hostname}${url.pathname}`;
+            return Response.redirect(redirectUrl, 302);
         }
     }
 
-    return new Response("Not Found", { status: 404 });
+    const randomPrefix = Array.from(subdomainPrefixes)[Math.floor(Math.random() * subdomainPrefixes.size)];
+
+    try {
+        return await getImage(env, randomPrefix);
+    } catch (error) {
+        console.error(`Failed to generate image: ${error}`);
+
+        // If an image was generated but failed to be served, invalidate it
+        if (typeof error === 'object' && error !== null && 'imageKey' in error) {
+            await invalidateImageKey(randomPrefix, (error as { imageKey: string }).imageKey, env);
+        }
+
+        return new Response("Failed to generate image", { status: 500 });
+    }
 }
 
 export default {
