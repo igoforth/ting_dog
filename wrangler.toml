@@ -1,0 +1,136 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "ting-dog"
+main = "index.ts"
+compatibility_date = "2024-09-26"
+compatibility_flags = ["nodejs_compat"]
+
+minify = true
+upload_source_maps = true
+workers_dev = true
+
+[vars]
+ENVIRONMENT = "dev"
+ROOT_DOMAIN = "ting.dog"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[ai]
+binding = "AI"
+
+[triggers]
+crons = ["0 0 * * *"] # Run daily at midnight UTC
+
+[[kv_namespaces]]
+binding = "PREFIX_TO_IMAGES_KV"
+id = "0c92bd08938d4fbf811660a977276b42"
+preview_id = "11768c1215c14e3c8021f5261c763707"
+
+[[kv_namespaces]]
+binding = "IMAGES_KV"
+id = "c6acb525283e4825b843e09647434e66"
+preview_id = "8595d06674c94e0badbf1e0fb92b95dc"
+
+# The rate limiting API is in open beta.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+simple = { limit = 1, period = 10 }
+namespace_id = "458986792"
+
+[env.production]
+minify = true
+upload_source_maps = true
+workers_dev = false
+routes = [
+    { pattern = "ting.dog", custom_domain = true },
+    { pattern = "adop.ting.dog", custom_domain = true },
+    { pattern = "barking.ting.dog", custom_domain = true },
+    { pattern = "bi.ting.dog", custom_domain = true },
+    { pattern = "boas.ting.dog", custom_domain = true },
+    { pattern = "cas.ting.dog", custom_domain = true },
+    { pattern = "chat.ting.dog", custom_domain = true },
+    { pattern = "coa.ting.dog", custom_domain = true },
+    { pattern = "da.ting.dog", custom_domain = true },
+    { pattern = "draf.ting.dog", custom_domain = true },
+    { pattern = "edi.ting.dog", custom_domain = true },
+    { pattern = "exis.ting.dog", custom_domain = true },
+    { pattern = "fit.ting.dog", custom_domain = true },
+    { pattern = "floa.ting.dog", custom_domain = true },
+    { pattern = "get.ting.dog", custom_domain = true },
+    { pattern = "hos.ting.dog", custom_domain = true },
+    { pattern = "hun.ting.dog", custom_domain = true },
+    { pattern = "inspec.ting.dog", custom_domain = true },
+    { pattern = "je.ting.dog", custom_domain = true },
+    { pattern = "let.ting.dog", custom_domain = true },
+    { pattern = "lin.ting.dog", custom_domain = true },
+    { pattern = "mee.ting.dog", custom_domain = true },
+    { pattern = "nes.ting.dog", custom_domain = true },
+    { pattern = "net.ting.dog", custom_domain = true },
+    { pattern = "opera.ting.dog", custom_domain = true },
+    { pattern = "pain.ting.dog", custom_domain = true },
+    { pattern = "pat.ting.dog", custom_domain = true },
+    { pattern = "poin.ting.dog", custom_domain = true },
+    { pattern = "put.ting.dog", custom_domain = true },
+    { pattern = "quo.ting.dog", custom_domain = true },
+    { pattern = "rat.ting.dog", custom_domain = true },
+    { pattern = "roo.ting.dog", custom_domain = true },
+    { pattern = "set.ting.dog", custom_domain = true },
+    { pattern = "sit.ting.dog", custom_domain = true },
+    { pattern = "spor.ting.dog", custom_domain = true },
+    { pattern = "star.ting.dog", custom_domain = true },
+    { pattern = "tes.ting.dog", custom_domain = true },
+    { pattern = "toas.ting.dog", custom_domain = true },
+    { pattern = "uni.ting.dog", custom_domain = true },
+    { pattern = "visi.ting.dog", custom_domain = true },
+    { pattern = "wai.ting.dog", custom_domain = true },
+    { pattern = "car.ting.dog", custom_domain = true },
+    { pattern = "char.ting.dog", custom_domain = true },
+    { pattern = "chea.ting.dog", custom_domain = true },
+    { pattern = "crea.ting.dog", custom_domain = true },
+    { pattern = "deba.ting.dog", custom_domain = true },
+    { pattern = "direc.ting.dog", custom_domain = true },
+    { pattern = "diver.ting.dog", custom_domain = true },
+    { pattern = "doub.ting.dog", custom_domain = true },
+    { pattern = "eleva.ting.dog", custom_domain = true },
+    { pattern = "fas.ting.dog", custom_domain = true },
+    { pattern = "flee.ting.dog", custom_domain = true },
+    { pattern = "flir.ting.dog", custom_domain = true },
+    { pattern = "inheri.ting.dog", custom_domain = true },
+    { pattern = "lis.ting.dog", custom_domain = true },
+    { pattern = "loca.ting.dog", custom_domain = true },
+    { pattern = "par.ting.dog", custom_domain = true },
+    { pattern = "pivo.ting.dog", custom_domain = true },
+    { pattern = "plan.ting.dog", custom_domain = true },
+    { pattern = "presen.ting.dog", custom_domain = true },
+    { pattern = "protec.ting.dog", custom_domain = true },
+    { pattern = "rela.ting.dog", custom_domain = true },
+    { pattern = "repor.ting.dog", custom_domain = true },
+    { pattern = "rota.ting.dog", custom_domain = true },
+    { pattern = "rou.ting.dog", custom_domain = true },
+    { pattern = "sor.ting.dog", custom_domain = true },
+    { pattern = "suppor.ting.dog", custom_domain = true },
+    { pattern = "trus.ting.dog", custom_domain = true },
+    { pattern = "upda.ting.dog", custom_domain = true },
+]
+vars = { ENVIRONMENT = "prod", ROOT_DOMAIN = "ting.dog" }
+
+[env.production.ai]
+binding = "AI"
+
+[[env.production.kv_namespaces]]
+binding = "PREFIX_TO_IMAGES_KV"
+id = "0c92bd08938d4fbf811660a977276b42"
+preview_id = "11768c1215c14e3c8021f5261c763707"
+
+[[env.production.kv_namespaces]]
+binding = "IMAGES_KV"
+id = "c6acb525283e4825b843e09647434e66"
+preview_id = "8595d06674c94e0badbf1e0fb92b95dc"
+
+[[env.production.unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+simple = { limit = 1, period = 10 }
+namespace_id = "458986792"

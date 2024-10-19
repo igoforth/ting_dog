@@ -1,0 +1,12 @@
+{
+  "name": "ting_dog",
+  "type": "module",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "wrangler": "^3.81.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
