@@ -13,24 +13,24 @@ Ting Dog is a Cloudflare Workers project that generates and serves AI-generated 
 ## Setup
 
 1. Install dependencies:
-   npm install
+   `npm install`
 
 2. Configure your `wrangler.toml` file with your Cloudflare account details and KV namespace IDs.
 
 3. Deploy the worker:
-   wrangler deploy
+   `wrangler deploy`
 
 ## Development
 
 To run the project locally:
 
-wrangler dev
+`wrangler dev`
 
 ## Deployment
 
 The project is configured for both development and production environments. To deploy to production:
 
-wrangler deploy --env production
+`wrangler deploy --env production`
 
 ## Environment Variables
 
@@ -59,7 +59,3 @@ The project is set up to work with multiple subdomains. Each subdomain correspon
 ## Contributing
 
 Feel free to submit issues or pull requests if you have suggestions for improvements or find any bugs.
-
-## License
-
-[Add your chosen license here]
