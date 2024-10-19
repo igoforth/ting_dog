@@ -67,6 +67,7 @@ const subdomainPrefixes: Set<string> = new Set([
     "cas",
     "chat",
     "coa",
+    "contribu",
     "da",
     "draf",
     "edi",
