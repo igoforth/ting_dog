@@ -62,7 +62,6 @@ const timeOfDay = [
 
 const subdomainPrefixes: Set<string> = new Set([
     "adop",
-    "barking",
     "bi",
     "boas",
     "cas",
@@ -86,6 +85,7 @@ const subdomainPrefixes: Set<string> = new Set([
     "net",
     "opera",
     "pain",
+    "pan",
     "pat",
     "poin",
     "put",
