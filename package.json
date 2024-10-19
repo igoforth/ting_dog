@@ -2,11 +2,16 @@
   "name": "ting_dog",
   "type": "module",
   "module": "index.ts",
-  "devDependencies": {
-    "@types/bun": "latest",
-    "wrangler": "^3.81.0"
-  },
   "peerDependencies": {
     "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@coderwyd/eslint-config": "^3.1.1",
+    "@types/bun": "latest",
+    "jiti": "^2.3.3",
+    "wrangler": "^3.81.0"
   }
 }

@@ -1,21 +1,21 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext", "DOM"],
     "target": "ESNext",
-    "module": "ESNext",
-    "moduleDetection": "force",
     "jsx": "react-jsx",
-    "allowJs": true,
+    "lib": ["ESNext", "DOM"],
+    "moduleDetection": "force",
+    "module": "ESNext",
     "moduleResolution": "bundler",
+    "types": ["./.wrangler/types/runtime.d.ts", "@types/node"],
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "noEmit": true,
+    "allowJs": false,
     "strict": true,
-    "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false,
-    "types": ["./.wrangler/types/runtime.d.ts","@types/node"]
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
   }
 }
