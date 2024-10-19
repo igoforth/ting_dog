@@ -213,6 +213,10 @@ const isString = (s: unknown): s is string =>
 const getRandomArrayElement = <T>(array: T[]): T =>
   array[Math.floor(Math.random() * array.length)];
 
+const getRandomSetElement = <T>(set: Set<T>): T => {
+  return getRandomArrayElement<T>(Array.from(set));
+};
+
 const shuffleArray = <T>(array: T[]): T[] => {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -585,10 +589,21 @@ const cors = (options: Partial<CorsOptions>) => {
           configureExposedHeaders(corsOptions),
         ]);
 
-        // If a response is provided, apply headers to it
+        // If a response is provided, create a new Response with combined headers
         if (res) {
-          applyHeaders(headers, res);
-          return res;
+          const newHeaders = new Headers(res.headers);
+          headers
+            .filter((header): header is string => Boolean(header))
+            .forEach((header) => {
+              const [name, value] = header.split(": ");
+              newHeaders.set(name, value);
+            });
+
+          return new Response(res.body, {
+            status: res.status,
+            statusText: res.statusText,
+            headers: newHeaders,
+          });
         }
 
         // For non-OPTIONS requests, we'll apply the headers
@@ -733,7 +748,7 @@ const serveRandomImageFromSubdomain = async (
 ): Promise<Response> => {
   const subdomain =
     env.ENVIRONMENT === "dev"
-      ? getRandomArrayElement(Array.from(subdomainPrefixes))
+      ? getRandomSetElement(subdomainPrefixes)
       : new URL(request.url).hostname.split(".")[0];
 
   let imageKeys: string[] | undefined;
@@ -765,25 +780,25 @@ const serveRandomImageFromSubdomain = async (
         const res =
           env.ENVIRONMENT === "dev"
             ? async () => {
-                const img = await debugImageForSubdomain(
-                  subdomain,
-                  imageKeys,
-                  env,
-                  deferredTasks,
-                );
-                return getImagePage(subdomain, img);
-              }
+              const img = await debugImageForSubdomain(
+                subdomain,
+                imageKeys,
+                env,
+                deferredTasks,
+              );
+              return getImagePage(subdomain, img);
+            }
             : async () => {
-                await generateImageForSubdomain(
-                  subdomain,
-                  imageKeys,
-                  env,
-                  deferredTasks,
-                );
-                return getBlankPage(
-                  "Generating new image, please try again shortly",
-                );
-              };
+              await generateImageForSubdomain(
+                subdomain,
+                imageKeys,
+                env,
+                deferredTasks,
+              );
+              return getBlankPage(
+                "Generating new image, please try again shortly",
+              );
+            };
 
         return new Response(await res(), {
           status: env.ENVIRONMENT === "dev" ? 200 : 202,
@@ -847,11 +862,23 @@ const requestHandler = async (
   }
 
   try {
-    // Check if it's a subdomain request or an IP address
+    // Check if IP address
     const isIPv4 = IPV4_REGEX.test(url.hostname);
     const isIPv6 = IPV6_REGEX.test(url.hostname);
     if ((isIPv4 || isIPv6) && env.ENVIRONMENT !== "dev") {
       return c(req, new Response("Must request by domain", { status: 401 }));
+    }
+
+    // Check if root domain
+    const hostParts = url.hostname.split(".");
+    const isSubdomain = hostParts.length > 2 && hostParts[0] !== "www";
+
+    if (!isSubdomain && env.ENVIRONMENT !== "dev") {
+      // If not a subdomain, redirect to a random subdomain
+      const randomSubdomain = getRandomSetElement(subdomainPrefixes);
+      const newUrl = new URL(url);
+      newUrl.hostname = `${randomSubdomain}.${hostParts.slice(-2).join(".")}`;
+      return c(req, Response.redirect(newUrl.toString(), 302));
     }
 
     return c(req, await serveRandomImageFromSubdomain(req, env, deferredTasks));
