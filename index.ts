@@ -178,32 +178,34 @@ const CorsOptionsSchema = z
 
 const _DeferredTaskSchema = z.function().returns(z.promise(z.void()));
 
-const ImageKeySchema = z.string().regex(/^image_[a-z]+_\d+_[a-z0-9]+$/);
-const ImageKeysSchema = z.array(ImageKeySchema);
-const KVResultSchema = z.object({
+const ImageKeySchema = z.string().regex(/^image_[a-z]+_[a-z0-9]+$/);
+const ReadyImageKeySchema = z.string().regex(/^ready_image_[a-z]+$/);
+const CombinedImageKeySchema = z.union([ImageKeySchema, ReadyImageKeySchema]);
+const ImageKeysSchema = z.array(CombinedImageKeySchema);
+const MappingMetadata = z.object({
+  lastUpdated: z.number(),
+  count: z.number(),
+});
+const KVMappingSchema = z.object({
   value: z.union([ImageKeysSchema, z.null()]),
-  metadata: z
-    .object({
-      lastUpdated: z.number(),
-      count: z.number(),
-    })
-    .optional(),
+  metadata: z.union([MappingMetadata, z.null()]),
 });
 
-const CompressedImageSchema = z.object({
+const ImageMetadata = z.object({
+  contentType: z.enum(["application/gzip"]),
+  prefix: z.string(),
+  generatedAt: z.number(),
+});
+const KVImageSchema = z.object({
   value: z.instanceof(Uint8Array),
-  metadata: z.object({
-    contentType: z.enum(["application/gzip"]),
-    prefix: z.string(),
-    generatedAt: z.number(),
-  }),
+  metadata: z.union([ImageMetadata, z.null()]),
 });
 
 // Types
 type CorsOptions = z.infer<typeof CorsOptionsSchema>;
 type DeferredTask = z.infer<typeof _DeferredTaskSchema>;
-type KVResult = z.infer<typeof KVResultSchema>;
-type CompressedImage = z.infer<typeof CompressedImageSchema>;
+type Mapping = z.infer<typeof KVMappingSchema>;
+type Image = z.infer<typeof KVImageSchema>;
 
 // HELPERS
 
@@ -253,7 +255,7 @@ const getImageKeysForSubdomain = async (
       subdomain,
       "json",
     );
-    return KVResultSchema.parse(result).value ?? [];
+    return KVMappingSchema.parse(result).value ?? [];
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error("Keys validation error:", error.errors);
@@ -319,7 +321,7 @@ const addImageKeyToSubdomain = async (
   const metadata = {
     lastUpdated: Date.now(),
     count: imageKeys.length,
-  } satisfies KVResult["metadata"];
+  } satisfies Mapping["metadata"];
 
   await env.PREFIX_TO_IMAGES_KV.put(subdomain, JSON.stringify(imageKeys), {
     metadata,
@@ -343,12 +345,12 @@ const invalidateImageKey = async (
     // Remove the key from the key list
     const updatedImageKeys = imageKeys.filter(
       (key) => key !== badKey,
-    ) satisfies KVResult["value"];
+    ) satisfies Mapping["value"];
 
     const metadata = {
       lastUpdated: Date.now(),
       count: updatedImageKeys.length,
-    } satisfies KVResult["metadata"];
+    } satisfies Mapping["metadata"];
 
     // Update PREFIX_TO_IMAGES_KV
     await env.PREFIX_TO_IMAGES_KV.put(
@@ -377,45 +379,38 @@ const getAnImage = async (
     return undefined;
   }
 
-  if (copyTo) {
-    const action = async () =>
-      await env.IMAGES_KV.put(
-        copyTo,
-        compressedImageResult.value as ArrayBuffer,
-        compressedImageResult.metadata ?? {},
-      );
-    if (deferredTasks) {
-      deferredTasks.push(action);
-    } else {
-      await action();
-    }
-  }
+  try {
+    const compressedData = KVImageSchema.parse(compressedImageResult);
 
-  // Parse the image
-  if (decomp) {
-    let compressedImage: Uint8Array | undefined;
-    try {
-      compressedImage = CompressedImageSchema.parse(
-        compressedImageResult,
-      ).value;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        console.error("Image validation error:", error.errors);
+    if (copyTo) {
+      // Copy image to new key
+      const action = async () =>
+        await env.IMAGES_KV.put(copyTo, compressedData.value, {
+          metadata: compressedData.metadata,
+        } satisfies KVNamespacePutOptions);
+      if (deferredTasks) {
+        deferredTasks.push(action);
+      } else {
+        await action();
       }
-      return undefined;
     }
 
-    // Decompress the image
-    try {
+    // Parse the image
+    if (decomp) {
+      // Decompress the image
       const decompressedImage = await decompress(
-        new Uint8Array(compressedImage),
+        new Uint8Array(compressedData.value),
       );
       const decoder = new TextDecoder();
       return decoder.decode(decompressedImage);
-    } catch (error) {
-      console.error(`Decompression error: ${(error as Error).message}`);
+    }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error("Image validation error:", error.errors);
       return undefined;
     }
+    console.error(`Decompression error: ${(error as Error).message}`);
+    return undefined;
   }
 };
 
@@ -655,9 +650,7 @@ const generateImageForSubdomain = async (
     const compressedImage = (await new Response(image)
       .arrayBuffer()
       .then((buffer) => new Uint8Array(buffer))
-      .then((uint8Array) =>
-        compress(uint8Array),
-      )) satisfies CompressedImage["value"];
+      .then((uint8Array) => compress(uint8Array))) satisfies Image["value"];
 
     // Store the compressed image in IMAGES_KV with metadata
     env.IMAGES_KV.put(key, compressedImage, {
@@ -665,16 +658,17 @@ const generateImageForSubdomain = async (
         contentType: "application/gzip",
         prefix: subdomain,
         generatedAt: Date.now(),
-      } satisfies CompressedImage["metadata"],
+      } satisfies Image["metadata"],
     });
   };
-  const task2 = () => addImageKeyToSubdomain(key, subdomain, imageKeys, env);
+  const task2 = async () =>
+    await addImageKeyToSubdomain(key, subdomain, imageKeys.slice(), env);
 
   if (deferredTasks) {
     deferredTasks.push(task1, task2);
     return key;
   } else {
-    return await Promise.all([task1, task2].map((task) => task()));
+    await Promise.allSettled([task1(), task2()]);
   }
 };
 
@@ -709,9 +703,7 @@ const debugImageForSubdomain = async (
   const compressedImage = (await new Response(image)
     .arrayBuffer()
     .then((buffer) => new Uint8Array(buffer))
-    .then((uint8Array) =>
-      compress(uint8Array),
-    )) satisfies CompressedImage["value"];
+    .then((uint8Array) => compress(uint8Array))) satisfies Image["value"];
 
   // Store the compressed image in IMAGES_KV with metadata
   env.IMAGES_KV.put(key, compressedImage, {
@@ -719,10 +711,10 @@ const debugImageForSubdomain = async (
       contentType: "application/gzip",
       prefix: subdomain,
       generatedAt: Date.now(),
-    } satisfies CompressedImage["metadata"],
+    } satisfies Image["metadata"],
   });
 
-  await addImageKeyToSubdomain(key, subdomain, imageKeys, env);
+  await addImageKeyToSubdomain(key, subdomain, imageKeys.slice(), env);
   return image;
 };
 
@@ -742,15 +734,10 @@ const addAnImage = async (env: Env, deferredTasks: DeferredTask[]) => {
 };
 
 const serveRandomImageFromSubdomain = async (
-  request: Request,
+  subdomain: string,
   env: Env,
   deferredTasks: DeferredTask[],
 ): Promise<Response> => {
-  const subdomain =
-    env.ENVIRONMENT === "dev"
-      ? getRandomSetElement(subdomainPrefixes)
-      : new URL(request.url).hostname.split(".")[0];
-
   let imageKeys: string[] | undefined;
   let imageKey: string | undefined;
   let image: string | undefined;
@@ -780,25 +767,25 @@ const serveRandomImageFromSubdomain = async (
         const res =
           env.ENVIRONMENT === "dev"
             ? async () => {
-              const img = await debugImageForSubdomain(
-                subdomain,
-                imageKeys,
-                env,
-                deferredTasks,
-              );
-              return getImagePage(subdomain, img);
-            }
+                const img = await debugImageForSubdomain(
+                  subdomain,
+                  imageKeys,
+                  env,
+                  deferredTasks,
+                );
+                return getImagePage(subdomain, img);
+              }
             : async () => {
-              await generateImageForSubdomain(
-                subdomain,
-                imageKeys,
-                env,
-                deferredTasks,
-              );
-              return getBlankPage(
-                "Generating new image, please try again shortly",
-              );
-            };
+                await generateImageForSubdomain(
+                  subdomain,
+                  imageKeys,
+                  env,
+                  deferredTasks,
+                );
+                return getBlankPage(
+                  "Generating new image, please try again shortly",
+                );
+              };
 
         return new Response(await res(), {
           status: env.ENVIRONMENT === "dev" ? 200 : 202,
@@ -813,9 +800,9 @@ const serveRandomImageFromSubdomain = async (
     if (imageKey && imageKeys) {
       const key = imageKey;
       const keys = imageKeys;
-      deferredTasks.push(async () => {
-        await invalidateImageKey(key, subdomain, keys, env);
-      });
+      deferredTasks.push(
+        async () => await invalidateImageKey(key, subdomain, keys, env),
+      );
     }
     if (error instanceof z.ZodError) {
       console.error("Critical validation error:", error.errors);
@@ -861,34 +848,36 @@ const requestHandler = async (
     return c(req, Response.redirect(`${url.origin}/`, 301));
   }
 
+  // Check if IP address
+  const isIPv4 = IPV4_REGEX.test(url.hostname);
+  const isIPv6 = IPV6_REGEX.test(url.hostname);
+  if ((isIPv4 || isIPv6) && env.ENVIRONMENT !== "dev") {
+    return c(req, new Response("Must request by domain", { status: 401 }));
+  }
+
+  // Check if root domain
+  const hostParts = url.hostname.split(".");
+  const isSubdomain = hostParts.length > 2 && hostParts[0] !== "www";
+  const randomSubdomain = getRandomSetElement(subdomainPrefixes);
+
+  if (!isSubdomain && env.ENVIRONMENT !== "dev") {
+    // If not a subdomain, redirect to a random subdomain
+    const newUrl = new URL(url);
+    newUrl.hostname = `${randomSubdomain}.${hostParts.slice(-2).join(".")}`;
+    return c(req, Response.redirect(newUrl.toString(), 302));
+  }
+
+  const subdomain = env.ENVIRONMENT === "dev" ? randomSubdomain : hostParts[0];
+
   try {
-    // Check if IP address
-    const isIPv4 = IPV4_REGEX.test(url.hostname);
-    const isIPv6 = IPV6_REGEX.test(url.hostname);
-    if ((isIPv4 || isIPv6) && env.ENVIRONMENT !== "dev") {
-      return c(req, new Response("Must request by domain", { status: 401 }));
-    }
-
-    // Check if root domain
-    const hostParts = url.hostname.split(".");
-    const isSubdomain = hostParts.length > 2 && hostParts[0] !== "www";
-
-    if (!isSubdomain && env.ENVIRONMENT !== "dev") {
-      // If not a subdomain, redirect to a random subdomain
-      const randomSubdomain = getRandomSetElement(subdomainPrefixes);
-      const newUrl = new URL(url);
-      newUrl.hostname = `${randomSubdomain}.${hostParts.slice(-2).join(".")}`;
-      return c(req, Response.redirect(newUrl.toString(), 302));
-    }
-
-    return c(req, await serveRandomImageFromSubdomain(req, env, deferredTasks));
+    const res = c(
+      req,
+      await serveRandomImageFromSubdomain(subdomain, env, deferredTasks),
+    );
+    ctx.waitUntil(Promise.allSettled(deferredTasks.map((task) => task())));
+    return res;
   } catch {
     return c(req, new Response("Internal server error", { status: 500 }));
-  } finally {
-    // Execute all deferred tasks
-    ctx.waitUntil(
-      Promise.allSettled(deferredTasks.map((task) => task() ?? [])),
-    );
   }
 };
 
@@ -903,7 +892,7 @@ export default {
     const deferredTasks: DeferredTask[] = [];
     ctx.waitUntil(
       addAnImage(env, deferredTasks).then(() =>
-        Promise.allSettled(deferredTasks.map((task) => task() ?? [])),
+        Promise.allSettled(deferredTasks.map((task) => task())),
       ),
     );
   },
