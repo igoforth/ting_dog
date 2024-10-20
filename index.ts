@@ -197,7 +197,7 @@ const ImageMetadata = z.object({
   generatedAt: z.number(),
 });
 const KVImageSchema = z.object({
-  value: z.instanceof(Uint8Array),
+  value: z.instanceof(ArrayBuffer),
   metadata: z.union([ImageMetadata, z.null()]),
 });
 
@@ -388,7 +388,7 @@ const getAnImage = async (
         await env.IMAGES_KV.put(copyTo, compressedData.value, {
           metadata: compressedData.metadata,
         } satisfies KVNamespacePutOptions);
-      if (deferredTasks) {
+      if (deferredTasks && env.ENVIRONMENT === "dev") {
         deferredTasks.push(action);
       } else {
         await action();
@@ -743,12 +743,7 @@ const serveRandomImageFromSubdomain = async (
   let image: string | undefined;
   try {
     imageKey = `${READY_IMAGE_KEY}_${subdomain}`;
-    image = await getAnImage(
-      imageKey,
-      env,
-      `${READY_IMAGE_KEY}_${subdomain}`,
-      deferredTasks,
-    );
+    image = await getAnImage(imageKey, env);
     if (!image) {
       // cache miss on ready image
       console.log(`READ CACHE MISS ${subdomain}`);
@@ -756,7 +751,12 @@ const serveRandomImageFromSubdomain = async (
       imageKeys = await getImageKeysForSubdomain(subdomain, env);
       if (imageKeys.length !== 0) {
         imageKey = getRandomArrayElement(imageKeys);
-        image = await getAnImage(imageKey, env);
+        image = await getAnImage(
+          imageKey,
+          env,
+          `${READY_IMAGE_KEY}_${subdomain}`,
+          deferredTasks,
+        );
       }
 
       if (!image) {
@@ -765,7 +765,7 @@ const serveRandomImageFromSubdomain = async (
 
         // Generate a new image
         const res =
-          env.ENVIRONMENT === "dev"
+          env.ENVIRONMENT !== "dev"
             ? async () => {
                 const img = await debugImageForSubdomain(
                   subdomain,
@@ -788,14 +788,19 @@ const serveRandomImageFromSubdomain = async (
               };
 
         return new Response(await res(), {
-          status: env.ENVIRONMENT === "dev" ? 200 : 202,
+          status: env.ENVIRONMENT !== "dev" ? 200 : 202,
           headers: {
             "Content-Type": "text/html;charset=UTF-8",
           },
         });
       }
     }
-    return new Response(getImagePage(subdomain, image), { status: 200 });
+    return new Response(getImagePage(subdomain, image), {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html;charset=UTF-8",
+      },
+    });
   } catch (error) {
     if (imageKey && imageKeys) {
       const key = imageKey;
