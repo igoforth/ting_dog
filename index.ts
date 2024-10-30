@@ -193,7 +193,7 @@ const subdomainPrefixes: Set<string> = new Set([
 const ICON_BASE64_DATA =
   "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";
 
-const htmlTemplate = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">{{PAGE_TITLE}}{{ICON_BASE64_DATA}}<style>body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background-color:#f0f0f0}.image-container{max-width:100%;max-height:100vh;display:flex;justify-content:center;align-items:center}img{max-width:100%;max-height:100vh;object-fit:contain;box-shadow:0 4px 8px rgba(0,0,0,.1)}@media (max-width:768px){.image-container{padding:10px}}</style></head><body><div class="image-container">{{BASE64_IMAGE}}</div></body></html>`;
+const htmlTemplate = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">{{PAGE_TITLE}}{{ICON_BASE64_DATA}}<style>body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background-color:#f0f0f0}.image-container{max-width:100%;max-height:100vh;display:flex;justify-content:center;align-items:center}img{max-width:100%;max-height:100vh;object-fit:contain;box-shadow:0 4px 8px rgb(0 0 0 / .1)}@media (max-width:768px){.image-container{padding:10px}}</style></head><body><div class="image-container">{{BASE64_IMAGE}}</div></body></html>`;
 
 // Schemas
 const CorsOptionsSchema = z
@@ -815,7 +815,7 @@ const getImagePage = (
 ): string => {
   const action = `${prefix}ting`;
   const pageTitle = `${action.charAt(0).toUpperCase() + action.slice(1)} Dog`;
-  const basePreviewUrl = `${url.origin}/image.png`;
+  const previewUrl = `${url.origin}/image.png`;
   const description = `A randomly generated image of a dog ${action}. View adorable AI-generated dog pictures.`;
 
   return htmlTemplate
@@ -823,8 +823,6 @@ const getImagePage = (
       "{{PAGE_TITLE}}",
       `
       <title>${pageTitle}</title>
-      
-      <!-- Primary Meta Tags -->
       <meta name="title" content="${pageTitle}">
       <meta name="description" content="${description}">
       <meta name="keywords" content="dog, ${action}, AI generated, pet pictures, cute dogs, ${prefix} dog">
@@ -832,40 +830,32 @@ const getImagePage = (
       <meta name="language" content="English">
       <meta name="author" content="Dog Image Generator">
       <meta name="theme-color" content="#f0f0f0">
-      
-      <!-- Open Graph / Facebook -->
       <meta property="og:title" content="${pageTitle}">
       <meta property="og:description" content="${description}">
-      <meta property="og:image" content="${basePreviewUrl}">
+      <meta property="og:image" content="${previewUrl}">
       <meta property="og:image:width" content="1200">
       <meta property="og:image:height" content="630">
       <meta property="og:image:alt" content="Generated Dog Image">
       <meta property="og:type" content="website">
       <meta property="og:url" content="${url.href}">
       <meta property="og:site_name" content="Dog Image Generator">
-      
-      <!-- Twitter -->
       <meta name="twitter:card" content="summary_large_image">
       <meta name="twitter:title" content="${pageTitle}">
       <meta name="twitter:description" content="${description}">
-      <meta name="twitter:image" content="${basePreviewUrl}">
+      <meta name="twitter:image" content="${previewUrl}">
       <meta name="twitter:image:alt" content="A dog ${action}">
-      
-      <!-- Apple/Mobile Specific -->
       <meta name="mobile-web-app-capable" content="yes">
       <meta name="apple-mobile-web-app-status-bar-style" content="default">
       <meta name="apple-mobile-web-app-title" content="${pageTitle}">
       <meta name="format-detection" content="telephone=no">
-      
-      <!-- Schema.org markup -->
       <script type="application/ld+json">
         {
           "@context": "https://schema.org",
           "@type": "ImageObject",
           "name": "${pageTitle}",
           "description": "${description}",
-          "contentUrl": "${basePreviewUrl}",
-          "thumbnailUrl": "${basePreviewUrl}",
+          "contentUrl": "${previewUrl}",
+          "thumbnailUrl": "${previewUrl}",
           "datePublished": "${new Date().toISOString()}",
           "uploadDate": "${new Date().toISOString()}"
         }
@@ -877,9 +867,10 @@ const getImagePage = (
       `<img 
         src="data:image/png;base64,${image}" 
         alt="A dog ${action}"
-        loading="eager"
+        loading="lazy"
         decoding="async"
         fetchpriority="high"
+        srcset="${previewUrl}"
       >`,
     )
     .replace(
@@ -888,44 +879,6 @@ const getImagePage = (
        <link rel="apple-touch-icon" href="data:image/png;base64,${ICON_BASE64_DATA}">`,
     );
 };
-
-// const getImagePage = (
-//   prefix: string,
-//   image: string,
-//   url: URL,
-// ): string => {
-//   const action = `${prefix}ting`;
-//   const pageTitle = `${action.charAt(0).toUpperCase() + action.slice(1)} Dog`;
-//   const basePreviewUrl = `${url.origin}/image.png`;
-//   return htmlTemplate
-//     .replace(
-//       "{{PAGE_TITLE}}",
-//       `
-//       <title>${pageTitle}</title>
-//       <meta property="og:title" content="${pageTitle}">
-//       <meta property="og:description" content="A randomly generated image of a dog ${action}">
-//       <meta property="og:image" content="${basePreviewUrl}">
-//       <meta property="og:image:width" content="1200">
-//       <meta property="og:image:height" content="630">
-//       <meta property="og:image:alt" content="Generated Dog Image">
-//       <meta property="og:type" content="website">
-//       <meta property="og:url" content="${url.href}">
-//       <meta name="twitter:card" content="summary_large_image">
-//       <meta name="twitter:image" content="${basePreviewUrl}">
-//     `,
-//     )
-//     .replace(
-//       "{{BASE64_IMAGE}}",
-//       `<img 
-//         src="data:image/png;base64,${image}" 
-//         alt="A dog ${action}"
-//       >`,
-//     )
-//     .replace(
-//       "{{ICON_BASE64_DATA}}",
-//       `<link rel="icon" href="data:image/png;base64,${ICON_BASE64_DATA}" type="image/png">`,
-//     );
-// };
 
 const getBlankPage = (msg: string) => {
   return htmlTemplate
@@ -2223,13 +2176,9 @@ export default {
     ctx: ExecutionContext,
   ): Promise<Response> => await requestHandler(req, env, ctx),
 
-  scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
+  scheduled(event: ScheduledEvent, env: Env, _ctx: ExecutionContext) {
     const deferredTasks: DeferredTask[] = [];
     const session = new SessionManager(Math.random().toString())
-    ctx.waitUntil(
-      addAnImage(session, env, deferredTasks).then(() =>
-        Promise.allSettled(deferredTasks.map((task) => task()) ?? []),
-      ),
-    );
+    addAnImage(session, env, deferredTasks);
   },
 };
