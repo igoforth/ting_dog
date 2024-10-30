@@ -6,7 +6,11 @@
     "moduleDetection": "force",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["./.wrangler/types/runtime.d.ts", "@types/node"],
+    "types": [
+      "./.wrangler/types/runtime.d.ts",
+      "./worker-configuration.d.ts",
+      "@types/node"
+    ],
     "allowImportingTsExtensions": true,
     "allowJs": false,
     "strict": true,

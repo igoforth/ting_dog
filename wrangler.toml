@@ -1,7 +1,7 @@
 #:schema node_modules/wrangler/config-schema.json
 name = "ting-dog"
 main = "index.ts"
-compatibility_date = "2024-09-26"
+compatibility_date = "2024-10-29"
 compatibility_flags = ["nodejs_compat"]
 
 minify = true
@@ -19,6 +19,13 @@ head_sampling_rate = 1
 [ai]
 binding = "AI"
 
+[durable_objects]
+bindings = [{ name = "IMAGE_COORDINATOR", class_name = "ImageCoordinator" }]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ImageCoordinator"]
+
 [triggers]
 crons = ["*/30 * * * *"] # Run every 30 minutes
 
@@ -32,9 +39,14 @@ binding = "IMAGES_KV"
 id = "c6acb525283e4825b843e09647434e66"
 preview_id = "8595d06674c94e0badbf1e0fb92b95dc"
 
-# The rate limiting API is in open beta.
 [[unsafe.bindings]]
 name = "RATE_LIMITER"
+type = "ratelimit"
+simple = { limit = 1, period = 10 }
+namespace_id = "458986792"
+
+[[unsafe.bindings]]
+name = "RATE_LIMITER_IMAGES"
 type = "ratelimit"
 simple = { limit = 1, period = 10 }
 namespace_id = "458986792"
@@ -131,8 +143,22 @@ routes = [
 ]
 vars = { ENVIRONMENT = "prod", ROOT_DOMAIN = "ting.dog" }
 
+[env.production.observability]
+enabled = true
+head_sampling_rate = 1
+
 [env.production.ai]
 binding = "AI"
+
+[env.production.durable_objects]
+bindings = [{ name = "IMAGE_COORDINATOR", class_name = "ImageCoordinator" }]
+
+[[env.production.migrations]]
+tag = "v1"
+new_classes = ["ImageCoordinator"]
+
+[env.production.triggers]
+crons = ["*/30 * * * *"] # Run every 30 minutes
 
 [[env.production.kv_namespaces]]
 binding = "PREFIX_TO_IMAGES_KV"
@@ -146,6 +172,12 @@ preview_id = "8595d06674c94e0badbf1e0fb92b95dc"
 
 [[env.production.unsafe.bindings]]
 name = "RATE_LIMITER"
+type = "ratelimit"
+simple = { limit = 1, period = 10 }
+namespace_id = "458986792"
+
+[[env.production.unsafe.bindings]]
+name = "RATE_LIMITER_IMAGES"
 type = "ratelimit"
 simple = { limit = 1, period = 10 }
 namespace_id = "458986792"
