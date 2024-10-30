@@ -8,7 +8,7 @@ Ting Dog is a Cloudflare Workers project that generates and serves AI-generated 
 - Subdomain-based routing for different actions
 - Image caching and compression
 - Rate limiting to prevent abuse
-- Daily scheduled task to generate new images
+- Task scheduled twice hourly to generate a new image
 
 ## Setup
 
